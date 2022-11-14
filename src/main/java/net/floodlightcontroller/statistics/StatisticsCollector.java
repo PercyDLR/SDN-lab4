@@ -62,6 +62,9 @@ public class StatisticsCollector implements IFloodlightModule, IStatisticsServic
 	private static final HashMap<NodePortTuple, SwitchPortBandwidth> portStats = new HashMap<NodePortTuple, SwitchPortBandwidth>();
 	private static final HashMap<NodePortTuple, SwitchPortBandwidth> tentativePortStats = new HashMap<NodePortTuple, SwitchPortBandwidth>();
 
+	private static long PortTxThreshold;
+	private static long PortRxThreshold;
+
 	/**
 	 * Run periodically to collect all port statistics. This only collects
 	 * bandwidth stats right now, but it could be expanded to record other
@@ -101,6 +104,14 @@ public class StatisticsCollector implements IFloodlightModule, IStatisticsServic
 							} else {
 								log.error("Inconsistent state between tentative and official port stats lists.");
 								return;
+							}
+
+							// Comparamos la velocidad con el treshold
+							if (spb.getBitsPerSecondTx().getValue() > PortTxThreshold) {
+								log.info("Se superó el umbral de Tx de {}", PortTxThreshold);
+							}
+							else if (spb.getBitsPerSecondRx().getValue() > PortRxThreshold) {
+								log.info("Se superó el umbral de Rx de {}", PortRxThreshold);
 							}
 
 							/* Get counted bytes over the elapsed period. Check for counter overflow. */
@@ -206,6 +217,10 @@ public class StatisticsCollector implements IFloodlightModule, IStatisticsServic
 		restApiService = context.getServiceImpl(IRestApiService.class);
 
 		Map<String, String> config = context.getConfigParams(this);
+
+		PortTxThreshold = Integer.parseInt(config.get("PortTxThreshold"));
+		PortTxThreshold = Integer.parseInt(config.get("PortRxThreshold"));
+
 		if (config.containsKey(ENABLED_STR)) {
 			try {
 				isEnabled = Boolean.parseBoolean(config.get(ENABLED_STR).trim());
